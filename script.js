@@ -1,5 +1,5 @@
 /**
- * DEVPORTFOLIO PRO MAX - SCRIPT.JS
+ * PORTFÓLIO CARLOS FELIPE RAMOS LESSA - SCRIPT.JS
  * Deterministic, accessible, lightweight vanilla JavaScript ES6+
  */
 
@@ -48,7 +48,7 @@ function initTheme() {
    2. RECRUITER 1-CLICK EMAIL COPY & TOAST NOTIFICATION
    -------------------------------------------------------------------------- */
 function initEmailCopy() {
-  const EMAIL_ADDRESS = 'carlos.henrique@eng.dev';
+  const EMAIL_ADDRESS = 'lessatubexd@gmail.com';
   const copyButtons = [
     document.getElementById('quickCopyEmailBtn'),
     document.getElementById('heroCopyEmail'),
@@ -151,190 +151,227 @@ function initProjectFilters() {
    4. INTERACTIVE ARCHITECTURE & STAR DEEP DIVE MODAL
    -------------------------------------------------------------------------- */
 const PROJECT_DEEP_DIVES = {
-  paystream: {
-    badge: 'Backend & FinTech Architecture',
-    title: 'PayStream — Arquitetura de Liquidação & Idempotência',
-    diagram: `[ Cliente API / Webhook Gateway ]
+  pizzaria: {
+    badge: 'Backend & RESTful API Architecture',
+    title: 'FastAPI Pizzaria Delivery — Autenticação JWT, SQLAlchemy & Schemas Pydantic',
+    diagram: `[ Cliente Web / Mobile / Swagger UI ]
               │
-              ▼  (HTTP POST /v1/payments + Idempotency-Key Header)
+              ▼  (HTTP POST /pedidos/ com Bearer JWT Token)
     ┌────────────────────────────────────────────────────────┐
-    │  API Gateway & Distributed Lock (Redis Redlock TTL 30s) │
-    └────────────────────────────────────────────────────────┘
-              │ (Verifica Duplicidade em Cache)
-              ├─────────────────────────────┐
-              ▼ (Chave Nova)                ▼ (Chave Existente)
-    ┌───────────────────────────┐  ┌─────────────────────────┐
-    │ Transação ACID PostgreSQL │  │ Retorna Resposta Salva  │
-    │  - Grava Registro Pedido  │  │ HTTP 200 (Sem Re-exec)  │
-    │  - Grava Tabela Outbox    │  └─────────────────────────┘
-    └───────────────────────────┘
-              │
-              ▼ (Debezium CDC / Outbox Relay Worker)
-    ┌────────────────────────────────────────────────────────┐
-    │ RabbitMQ Exchange (Direct + Dead Letter Queue + TTL)   │
+    │ FastAPI Application Core (main.py + CORS Middleware)   │
     └────────────────────────────────────────────────────────┘
               │
-              ▼ (Workers de Liquidação com Retries Exponenciais)
-    [ Gateway de Pagamento Externo (Stripe / Adyen / Pix) ]`,
+              ▼ (Verificação de Autenticação / dependencies.py)
+    ┌────────────────────────────────────────────────────────┐
+    │ OAuth2PasswordBearer + Validação de Assinatura JWT     │
+    │  - Decodifica Token (HS256) e extrai sub (user_id)     │
+    │  - Injeta Sessão de Banco de Dados (yield get_db)      │
+    └────────────────────────────────────────────────────────┘
+              │
+              ▼ (Roteamento Modular / order_routes.py)
+    ┌────────────────────────────────────────────────────────┐
+    │ Schemas de Validação Pydantic (Entrada & Saída)        │
+    │  - ItemPedidoCreate: { item_id, quantidade, notas }    │
+    │  - Validação estrita de tipos e sanitização de dados   │
+    └────────────────────────────────────────────────────────┘
+              │
+              ▼ (Transação Atômica com SQLAlchemy ORM)
+    ┌────────────────────────────────────────────────────────┐
+    │ PostgreSQL / SQLite Database                           │
+    │  - Tabela Pedidos (status, valor_total, data_criacao)  │
+    │  - Tabela ItensPedido (relacionamento 1:N com Pedido)  │
+    │  - Recálculo dinâmico do valor total do pedido         │
+    └────────────────────────────────────────────────────────┘
+              │
+              ▼
+    [ Resposta JSON HTTP 201 Created com PedidoResponse ]`,
     tradeoffs: [
       {
-        choice: 'Outbox Pattern com PostgreSQL vs Publicação Direta no RabbitMQ',
-        reason: 'A publicação direta em brokers de mensageria sofre de risco de consistência eventual caso a transação do banco sofra rollback após o envio da mensagem. O Transactional Outbox garante atomicidade estrita de 100%.'
+        choice: 'FastAPI vs Flask / Django',
+        reason: 'O FastAPI oferece alta performance assíncrona nativa com Starlette e Pydantic, reduzindo latência de I/O em endpoints de pedidos e gerando documentação OpenAPI/Swagger 100% automática.'
       },
       {
-        choice: 'Redis Distributed Lock vs Locks Pessimistas de Banco (FOR UPDATE)',
-        reason: 'O lock em memória no Redis desacopla a verificação de concorrência dos recursos de CPU e pool de conexões do PostgreSQL, aguentando picos de 10.000 requisições simultâneas sem degradar o banco.'
+        choice: 'SQLAlchemy com Injeção de Dependências (yield get_db)',
+        reason: 'O padrão de injeção por yield garante que toda sessão de banco de dados seja estritamente fechada ao término do ciclo de requisição/resposta, prevenindo connection leaks no PostgreSQL.'
       },
       {
-        choice: 'Dead Letter Exchanges (DLX) com Políticas de Retry Inteligente',
-        reason: 'Erros transientes (ex: 504 Gateway Timeout do adquirente) sofrem retry exponencial com jitter de até 5 tentativas antes de irem para a fila de inspeção manual, garantindo autorrecuperação sem intervenção humana.'
+        choice: 'Autenticação Stateless com JWT (Access & Refresh Tokens)',
+        reason: 'Elimina a necessidade de armazenamento de sessões em memória do servidor, permitindo que a API escale horizontalmente mantendo segurança rigorosa com expiração curta de tokens.'
       }
     ],
     qualityChecklist: [
-      'Cobertura de testes unitários e de integração em 94% com Jest e Supertest',
-      'Testes de Caos com injeção de latência simulada e queda de nós RabbitMQ',
-      'Auditoria de segurança contra race conditions e ataques de replay de transações',
-      'Métricas Prometheus expostas: payment_latency_seconds_bucket e payment_errors_total'
+      'Documentação interativa Swagger UI (/docs) e Redoc disponíveis nativamente',
+      'Criptografia de senhas com algoritmo bcrypt e salt automático via Passlib',
+      'Validação bidirecional de dados com Schemas Pydantic v2',
+      'Separação modular de rotas: /auth para segurança e /pedidos para gestão'
     ],
-    github: 'https://github.com/carloshenrique-dev/paystream-engine',
-    demo: 'https://paystream-demo.carloshenrique.dev'
+    github: 'https://github.com/CarlosFelipeLessa/fastapi-pizzaria-delivery',
+    demo: 'https://github.com/CarlosFelipeLessa/fastapi-pizzaria-delivery#readme'
   },
 
-  cloudmetrics: {
-    badge: 'Full Stack & Observability SaaS',
-    title: 'CloudMetrics — Telemetria em Tempo Real com ClickHouse',
-    diagram: `[ Agentes de Telemetria nos Servidores (DaemonSet) ]
-              │ (gRPC Stream / Batches de 500ms)
+  banco: {
+    badge: 'Desktop Software & POO Architecture',
+    title: 'Sistema de Gestão Bancária — POO Avançada & CustomTkinter',
+    diagram: `[ Interface Gráfica CustomTkinter (Janela Principal) ]
+              │
+              ▼  (Eventos de Clique: Depósito, Saque, Extrato)
+    ┌────────────────────────────────────────────────────────┐
+    │ Camada de Apresentação (Views / Frames Responsivos)    │
+    │  - Validação de entrada numérica e feedback visual     │
+    │  - Modo Escuro (Dark Mode) nativo                      │
+    └────────────────────────────────────────────────────────┘
+              │
               ▼
     ┌────────────────────────────────────────────────────────┐
-    │ Ingestão Go / Fiber (Pool de Workers Concorrentes)     │
+    │ BancoService (Controller de Regras de Negócio)         │
+    │  - Autentica credenciais do correntista                │
+    │  - Valida regras de saldo, limites de saque diário     │
     └────────────────────────────────────────────────────────┘
               │
-              ▼ (Bulk Insert em Lotes Colunares)
+              ▼ (Instanciação de Objetos de Domínio)
     ┌────────────────────────────────────────────────────────┐
-    │ ClickHouse Cluster (Tabelas MergeTree Particionadas)   │
+    │ Entidades de Domínio (Classes POO)                     │
+    │  - Cliente (nome, cpf, lista de contas)                │
+    │  - Conta (agencia, numero, saldo, historico)           │
+    │  - Transacao: Deposito, Saque (Herança & Polimorfismo) │
     └────────────────────────────────────────────────────────┘
               │
-              ▲ (WebSockets Bidirecionais com Filtro por Tenant)
+              ▼
     ┌────────────────────────────────────────────────────────┐
-    │ Next.js 14 Frontend (Streaming de Séries Temporais)     │
-    │  - Canvas 2D / WebGL para Gráficos a 60 FPS            │
-    │  - Virtualização de Listas de Nós e Alertas             │
+    │ Storage Manager (Persistência Estruturada em JSON)     │
+    │  - Gravação atômica do estado das contas e extratos    │
+    │  - Recuperação consistente no ciclo de inicialização   │
     └────────────────────────────────────────────────────────┘`,
     tradeoffs: [
       {
-        choice: 'ClickHouse Colunar vs PostgreSQL / TimescaleDB',
-        reason: 'ClickHouse oferece compressão colunar de até 5:1 e velocidade de agregação de bilhões de linhas por segundo, reduzindo os custos de infraestrutura de armazenamento em mais de 65% em comparação com bancos relacionais.'
+        choice: 'Programação Orientada a Objetos (POO) vs Abordagem Procedural',
+        reason: 'A modelagem orientada a objetos isola as regras financeiras em entidades ricas (Conta, Transacao), facilitando testes, manutenibilidade e expansão para novos tipos de conta.'
       },
       {
-        choice: 'WebSockets Multiplexados vs Polling HTTP / SSE',
-        reason: 'WebSockets permitiram que um único canal persistente trafegasse métricas de múltiplos servidores com compressão binária, eliminando o overhead de headers HTTP frequentes.'
+        choice: 'CustomTkinter vs Tkinter Nativo Padrão',
+        reason: 'CustomTkinter fornece suporte nativo a Dark Mode moderno, cantos arredondados e renderização em alta resolução em múltiplos sistemas operacionais sem dependências pesadas de web.'
       },
       {
-        choice: 'Renderização via Canvas 2D vs SVG com D3.js',
-        reason: 'Quando se plota mais de 50.000 pontos em tempo real, nós no DOM (SVG) travam o navegador do usuário. Canvas executa direto na GPU mantendo 60 frames por segundo estáveis.'
+        choice: 'Persistência em JSON com Estrutura Normalizada',
+        reason: 'Dispensa instalações complexas de banco de dados para a aplicação desktop do cliente, permitindo portabilidade imediata e inspeção legível dos registros de extrato.'
       }
     ],
     qualityChecklist: [
-      'Lighthouse Score: 98 Performance / 100 SEO / 100 Acessibilidade',
-      'Suporte a Dark Mode OLED nativo com contraste auditado para salas de controle (NOC)',
-      'Testes end-to-end de streaming com Playwright cobrindo reconexão automática'
+      'Modelagem arquitetural validada com diagramas de classes UML completos',
+      'Tratamento preventivo de exceções para valores negativos e tipos inválidos',
+      'Histórico transacional completo de movimentações para extrato auditável',
+      'Código modular estruturado seguindo as convenções do PEP 8'
     ],
-    github: 'https://github.com/carloshenrique-dev/cloudmetrics-platform',
-    demo: 'https://cloudmetrics.carloshenrique.dev'
+    github: 'https://github.com/CarlosFelipeLessa/Sistema-Bancario',
+    demo: 'https://github.com/CarlosFelipeLessa/Sistema-Bancario#readme'
   },
 
-  devstore: {
-    badge: 'Full Stack Serverless E-commerce',
-    title: 'DevStore — Checkout Transparente Serverless & Multi-Tenant',
-    diagram: `[ Comprador no Carrinho (Next.js / React) ]
+  agile: {
+    badge: 'Engenharia de Software & Métodos Ágeis',
+    title: 'Análise Sistêmica do Framework Scrum — Pôster Científico na UVA',
+    diagram: `[ Visão de Negócio & Stakeholders ]
               │
-              ▼ (POST /checkout/session)
+              ▼
     ┌────────────────────────────────────────────────────────┐
-    │ AWS CloudFront CDN + API Gateway com WAF Rate-Limiting │
+    │ Product Backlog (Priorizado com exclusividade pelo PO) │
     └────────────────────────────────────────────────────────┘
               │
-              ▼ (Invoca Função Lambda em Python/Node.js)
+              ▼  (Sprint Planning Meeting - Timebox 1 a 4 semanas)
     ┌────────────────────────────────────────────────────────┐
-    │ AWS Lambda (Checkout Session Controller)               │
-    │  - Valida Estoque em Cache Dinâmico Redis              │
-    │  - Gera Intenção de Pagamento Segura via Stripe API   │
+    │ Sprint Backlog (Itens selecionados + Plano da Equipe)  │
     └────────────────────────────────────────────────────────┘
               │
-              ▼ (Grava Pedido no DynamoDB Single-Table Design)
+              ▼  (Execução Iterativa com Daily Scrum de 15 min)
     ┌────────────────────────────────────────────────────────┐
-    │ Amazon DynamoDB (Auto-Scaling On-Demand)               │
+    │ Time de Desenvolvimento Multifuncional & Scrum Master  │
+    │  - Foco em auto-organização e eliminação de bloqueios  │
+    │  - Pilares Empíricos: Transparência, Inspeção, Adaptação│
     └────────────────────────────────────────────────────────┘
               │
-              ▼ (Webhook Stripe recebido com Assinatura Criptográfica)
-    [ Fila SQS -> Lambda de Faturamento -> Notificação SNS ]`,
+              ▼
+    ┌────────────────────────────────────────────────────────┐
+    │ Sprint Review (Demonstração do Software aos Clientes)  │
+    │  & Sprint Retrospective (Inspeção de Processos do Time)│
+    └────────────────────────────────────────────────────────┘
+              │
+              ▼
+    [ Incremento Funcional Potencialmente Utilizável (DoD) ]`,
     tradeoffs: [
       {
-        choice: 'AWS Lambda Serverless vs Containers ECS/Fargate',
-        reason: 'Para o pico extremo de tráfego de Black Friday (que dura poucas horas), Serverless escala de 0 a milhares de instâncias em segundos sem custo ocioso nos meses regulares.'
+        choice: 'Ciclo Empírico Iterativo (Scrum) vs Modelo Prescritivo (Cascata/BDUF)',
+        reason: 'Em cenários com requisitos dinâmicos, o Scrum reduz incertezas e riscos logo nas primeiras semanas, antecipando o Retorno sobre o Investimento (ROI) em comparação a entregas monolíticas tardias.'
       },
       {
-        choice: 'DynamoDB Single-Table Design vs Banco Relacional',
-        reason: 'Modelagem orientada a padrões de acesso (Customer, Order, LineItems na mesma tabela) garante latências de leitura e gravação previsíveis abaixo de 8ms, independente do volume de dados.'
+        choice: 'Product Owner Dedicado vs Múltiplos Tomadores de Decisão',
+        reason: 'Concentrar a priorização no Product Owner elimina ruídos e conflitos de escopo, garantindo que o time sempre trabalhe no item de maior valor para o negócio.'
       },
       {
-        choice: 'Micro-Frontend de Checkout Desacoplado',
-        reason: 'Garante que mesmo que o catálogo ou ferramentas de marketing sofram lentidão, o pipeline de conversão financeira permaneça 100% isolado e ultra-rápido.'
+        choice: 'Cerimônias com Timebox Estrito vs Reuniões Informais Sem Pauta',
+        reason: 'Timeboxes definidos mantêm o ritmo de entrega constante e evitam reuniões improdutivas, assegurando disciplina sem engessar a equipe.'
       }
     ],
     qualityChecklist: [
-      'Compliance PCI-DSS (Nenhum dado sensível de cartão trafega pelos servidores)',
-      'Testes de carga com Artillery simulando 5.000 checkouts por minuto',
-      'Infraestrutura como Código 100% reproduzível via Terraform'
+      'Pôster e artigo científico estruturados rigorosamente conforme ABNT NBR 6023',
+      'Articulação teórico-prática com a disciplina Teoria Geral de Sistemas (UVA 2026)',
+      'Identificação clara dos principais desafios: resistência cultural e "ágil sem disciplina"',
+      'Documento acadêmico em PDF de alta qualidade visual gerado e aprovado'
     ],
-    github: 'https://github.com/carloshenrique-dev/devstore-checkout-core',
-    demo: 'https://devstore.carloshenrique.dev'
+    github: 'https://github.com/CarlosFelipeLessa/Metodo-Agil',
+    demo: 'https://drive.google.com/file/d/13m1ZPZzojMsZPeSmn1jDH-6YaEm5Z7VZ/view?usp=drivesdk'
   },
 
-  scalerflow: {
-    badge: 'Distributed Systems & Cloud Computing',
-    title: 'ScalerFlow — Motor de Processamento Assíncrono com Kubernetes',
-    diagram: `[ APIs Transacionais & Sistemas Internos ]
+  python_poo: {
+    badge: 'Python & Algoritmos',
+    title: 'Especialização em Python — Mundos 1 a 4 & Arquitetura Orientada a Objetos',
+    diagram: `[ Resolução de Problemas & Lógica Computacional ]
               │
-              ▼ (Enfileira Jobs Pesados com Prioridade)
+              ▼
     ┌────────────────────────────────────────────────────────┐
-    │ Redis Streams (Grupos de Consumidores por Prioridade) │
+    │ Mundos 1 & 2: Fundamentos & Estruturas de Controle     │
+    │  - Tipos primitivos, operadores, condicionais aninhadas│
+    │  - Laços de repetição (for, while com flags de parada) │
     └────────────────────────────────────────────────────────┘
               │
-              ▼ (Métrica de Profundidade da Fila exportada para KEDA)
+              ▼
     ┌────────────────────────────────────────────────────────┐
-    │ Kubernetes Event-driven Autoscaling (KEDA)             │
-    │  - Se Fila > 500 jobs: Escala de 3 para 20 Pods        │
+    │ Mundo 3: Coleções & Modularização                      │
+    │  - Tuplas, Listas compostas, Dicionários complexos     │
+    │  - Funções, empacotamento de parâmetros (*args, **kw)  │
+    │  - Criação de Módulos e Pacotes reutilizáveis          │
     └────────────────────────────────────────────────────────┘
               │
-              ▼ (Pool de Workers em Go com Concorrência Otimizada)
+              ▼
     ┌────────────────────────────────────────────────────────┐
-    │ Pods de Workers (Geração de PDFs, Relatórios CSV, OCR) │
+    │ Mundo 4: Programação Orientada a Objetos (POO)         │
+    │  - Classes, atributos de instância e de classe         │
+    │  - Encapsulamento (getters/setters), Herança múltipla  │
+    │  - Polimorfismo e Métodos Mágicos (__init__, __str__)  │
     └────────────────────────────────────────────────────────┘
               │
-              ▼ (Upload Direto do Artefato Final)
-    [ Amazon S3 Bucket + URL Assinada Enviada ao Usuário ]`,
+              ▼
+    [ Aplicações Reais: Automações, CLIs com Rich & APIs ]`,
     tradeoffs: [
       {
-        choice: 'Go Workers com Goroutines vs Python Celery',
-        reason: 'Go consome 85% menos memória RAM por processo de worker e suporta milhares de operações I/O concorrentes sem a necessidade de pools pesados de fork de processos.'
+        choice: 'Modularização em Pacotes vs Scripts Monolíticos Únicos',
+        reason: 'Dividir o código em módulos com responsabilidade única permite reuso de funções em diferentes projetos e facilita a manutenção contínua.'
       },
       {
-        choice: 'KEDA baseado em Profundidade de Fila vs HPA padrão por CPU',
-        reason: 'Tarefas de batch podem estar com a fila cheia de trabalho pendente enquanto o uso de CPU ainda é baixo no início. O escalonamento preditivo por tamanho de fila evita atrasos de SLA.'
+        choice: 'Uso de Type Hints em Python 3 vs Tipagem Dinâmica Implícita',
+        reason: 'Anotações de tipo melhoram a legibilidade do código, facilitam refatorações seguras e integram perfeitamente com Pydantic e linters modernos.'
       },
       {
-        choice: 'Upload direto para S3 com Presigned URLs',
-        reason: 'Elimina o tráfego de arquivos gigabytes pela memória da API, liberando banda de rede para operações críticas do usuário.'
+        choice: 'Estilização de Terminais com a Biblioteca Rich vs print() Convencional',
+        reason: 'Rich transforma ferramentas de linha de comando em interfaces visuais legíveis com tabelas, painéis e cores sem overhead excessivo.'
       }
     ],
     qualityChecklist: [
-      'Graceful Shutdown em pods do Kubernetes (aguarda finalização do job corrente)',
-      'Alertas no Slack via Prometheus Alertmanager para falhas repetidas',
-      'Isolamento total de dependências com Docker multi-stage builds ultraleves'
+      'Mais de 100 desafios práticos resolvidos e catalogados por complexidade',
+      'Código aderente aos padrões de estilo e convenções da PEP 8',
+      'Tratamento preventivo de exceções com blocos try/except/finally',
+      'Repositórios no GitHub com histórico semântico de evolução'
     ],
-    github: 'https://github.com/carloshenrique-dev/scalerflow-workers',
-    demo: 'https://scalerflow.carloshenrique.dev'
+    github: 'https://github.com/CarlosFelipeLessa/Python_CeV-Mundo1-2-3',
+    demo: 'https://github.com/CarlosFelipeLessa/Curso-Python-POO'
   }
 };
 
@@ -378,7 +415,7 @@ function initArchitectureModal() {
         <div class="modal-section">
           <h4 class="modal-section-title">
             <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-            Topologia de Arquitetura & Fluxo de Dados
+            Topologia de Arquitetura & Fluxo
           </h4>
           <pre class="modal-ascii-box"><code>${escapeHTML(projectData.diagram)}</code></pre>
         </div>
@@ -386,7 +423,7 @@ function initArchitectureModal() {
         <div class="modal-section">
           <h4 class="modal-section-title">
             <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-            Decisões Técnicas & Trade-offs (Engineering Rationale)
+            Decisões Técnicas & Trade-offs
           </h4>
           <ul class="tradeoff-list">
             ${tradeoffsHTML}
@@ -396,7 +433,7 @@ function initArchitectureModal() {
         <div class="modal-section">
           <h4 class="modal-section-title">
             <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-            Padrões de Qualidade & Resiliência Aplicados
+            Padrões de Qualidade Aplicados
           </h4>
           <ul style="list-style: none; padding: 0;">
             ${checklistHTML}
@@ -410,7 +447,7 @@ function initArchitectureModal() {
           <span>Repositório GitHub</span>
         </a>
         <a href="${projectData.demo}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
-          <span>Live Demo</span>
+          <span>Ver Demonstração / Documento</span>
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
         </a>
       `;
@@ -538,9 +575,9 @@ function initContactForm() {
     }
 
     // Validate Email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
     if (!emailInput.value.trim() || !emailRegex.test(emailInput.value.trim())) {
-      showFieldError('formEmail', 'Por favor, insira um e-mail corporativo válido.');
+      showFieldError('formEmail', 'Por favor, insira um e-mail válido.');
       isValid = false;
     } else {
       clearFieldError('formEmail');
@@ -568,11 +605,11 @@ function initContactForm() {
       formStatus.className = 'form-status success';
       formStatus.innerHTML = `
         <strong>Mensagem enviada com sucesso!</strong>
-        <p style="margin-top: 4px; font-size: 0.8125rem;">Obrigado pelo contato. Retornarei em menos de 24 horas no e-mail informado.</p>
+        <p style="margin-top: 4px; font-size: 0.8125rem;">Obrigado pelo contato. Retornarei em breve pelo e-mail lessatubexd@gmail.com.</p>
       `;
 
       showToast('Mensagem enviada com sucesso! Responderei em breve.');
-    }, 1200);
+    }, 1000);
   });
 
   function showFieldError(fieldId, msg) {
